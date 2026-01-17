@@ -1,67 +1,27 @@
-name: Build (Nintendo Switch)
+name: Awoo-Installer
 
 on:
   push:
-  pull_request:
-  workflow_dispatch:
+    branches: ["*"]
+
+permissions:
+  contents: write
 
 jobs:
-  build-switch:
+  build:
     runs-on: ubuntu-latest
-
+    container:
+      image: devkitpro/devkita64:20251117
     steps:
-      - name: Checkout repository (with submodules)
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install devkitPro + Switch libraries
-        shell: bash
-        run: |
-          set -eux
-
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            ca-certificates curl gnupg2 make git xz-utils pkg-config
-
-          # Install devkitPro pacman
-          curl -L https://apt.devkitpro.org/install-devkitpro-pacman | sudo bash
-
-          # Update + install Switch toolchain and portlibs
-          sudo dkp-pacman -Syu --noconfirm
-          sudo dkp-pacman -S --noconfirm \
-            switch-dev \
-            switch-sdl2 \
-            switch-sdl2_image \
-            switch-sdl2_mixer \
-            switch-sdl2_gfx \
-            switch-freetype \
-            switch-curl \
-            switch-libjpeg-turbo \
-            switch-libpng \
-            switch-libwebp \
-            switch-zstd \
-            switch-mbedtls
-
-          echo "DEVKITPRO=/opt/devkitpro" >> $GITHUB_ENV
-          echo "DEVKITARM=/opt/devkitpro/devkitARM" >> $GITHUB_ENV
-          echo "/opt/devkitpro/tools/bin" >> $GITHUB_PATH
-          echo "/opt/devkitpro/devkitARM/bin" >> $GITHUB_PATH
-
-      - name: Build (make)
-        shell: bash
-        run: |
-          set -eux
-          make clean || true
-          make
-
-      - name: Upload Switch artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: awoo-switch-build
-          path: |
-            *.nro
-            *.nacp
-            *.elf
-            *.nsp
-            *.nso
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Build Awoo
+      run: |
+        git config --system --add safe.directory '*'
+        make -j$(nproc) all
+    - name: Upload Assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: Awoo-Installer
+        path: Awoo-Installer.nro
